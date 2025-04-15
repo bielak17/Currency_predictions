@@ -1,1 +1,2 @@
 # Currency_predictions
+My project comparing ARIMA, RFR and SVR models in predicting time series. Data used in the project is currency exchange rate between polish złoty and a few other currencies from all around the world.
