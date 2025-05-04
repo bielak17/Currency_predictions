@@ -23,11 +23,56 @@ def get_week_of_month(date):
   return (adjusted_dom - 1)//7 + 1
 
 
+# def fill_nan_linear_df(df, column_name):
+#   series = df[column_name].reset_index(drop=True)
+#   nan_indices = series[series.isna()].index
+#   for i in nan_indices:
+#     prev_valid_index = i - 1
+#     while prev_valid_index >= 0 and np.isnan(series.iloc[prev_valid_index]):
+#       prev_valid_index -= 1
+#     next_valid_index = i + 1
+#     print(type(series.iloc[next_valid_index]), series.iloc[next_valid_index])
+#     print(pd.isna(series.iloc[next_valid_index]))
+#     print(df.columns)
+#     print(df['Ex_Rate'].head())
+#     while next_valid_index < len(series) and np.isnan(series.iloc[next_valid_index]):
+#       next_valid_index += 1
+#     if prev_valid_index >= 0 and next_valid_index < len(series):
+#       start_val = series.iloc[prev_valid_index]
+#       end_val = series.iloc[next_valid_index]
+#       num_nans = next_valid_index - prev_valid_index - 1
+#       increment = (end_val - start_val) / (num_nans + 1)
+#       fill_values = np.linspace(start_val + increment, end_val - increment, num_nans)
+#       series.iloc[i] = fill_values[i - prev_valid_index - 1]
+#   df[column_name] = series.values
+#   return df
+
+def fill_nan_linear_df(df, column_name):
+    series = df[column_name].copy().reset_index(drop=True)
+    nan_indices = np.where(series.isna())[0]
+    for i in nan_indices:
+      prev_valid_index = i - 1
+      print(series.iloc[prev_valid_index][0])
+      while prev_valid_index >= 0 and np.isnan(series.iloc[prev_valid_index][0]):
+        prev_valid_index -= 1
+      next_valid_index = i + 1
+      while next_valid_index < len(series) and np.isnan(series.iloc[next_valid_index][0]):
+        next_valid_index += 1
+      if prev_valid_index >= 0 and next_valid_index < len(series):
+        start_val = series.iloc[prev_valid_index]
+        end_val = series.iloc[next_valid_index]
+        num_nans = next_valid_index - prev_valid_index - 1
+        increment = (end_val - start_val) / (num_nans + 1)
+        fill_values = np.linspace(start_val + increment, end_val - increment, num_nans)
+        series.iloc[i] = fill_values[i - prev_valid_index - 1]
+    df[column_name] = series.values
+    return df
+
 class Models:
   def __init__(self, db, currency, train_months):
     self.train = None
     self.test = None
-    self.target = ['Price']
+    self.target = ['Ex_Rate']
     self.features = None
     self.db=db
     self.currency=currency
@@ -36,19 +81,32 @@ class Models:
 
   def prepare_data(self):
     self.db = self.db[['data',self.currency]]
-
-  def prepare_data_test(self):
-    self.db = self.db.rename(columns={'Closing Price (USD)':'Price'})
-    self.db = self.db.drop(columns=['24h Open (USD)','24h High (USD)','24h Low (USD)'])
-    self.db['Date']=pd.to_datetime(self.db['Date'],format='%Y-%m-%d')
-    self.db.set_index('Date',inplace=True)
-    self.db=self.db.asfreq('D')
+    self.db = self.db.rename(columns={'data':'Date',self.currency: 'Ex_Rate'})
+    self.db['Date'] = pd.to_datetime(self.db['Date'], format='%Y%m%d')
+    self.db.set_index('Date', inplace=True)
+    self.db = self.db.asfreq('D')
+    print("NaN values: \n", self.db.isna().sum())
+    self.db = fill_nan_linear_df(self.db, self.target)
+    print("NaN values: \n", self.db.isna().sum())
     self.db['DayOfWeek'] = self.db.index.dayofweek + 1
     self.db['DayOfMonth'] = self.db.index.day
     self.db['WeekOfMonth'] = self.db.index.map(get_week_of_month)
-    self.train = self.db.iloc[-31-30*self.train_months:-31]
+    self.train = self.db.iloc[-31 - 30 * self.train_months:-31]
     self.test = self.db.iloc[-31:]
     self.features = [i for i in self.train.columns if i not in self.target]
+
+  # def prepare_data_test(self):
+  #   self.db = self.db.rename(columns={'Closing Price (USD)':'Price'})
+  #   self.db = self.db.drop(columns=['24h Open (USD)','24h High (USD)','24h Low (USD)'])
+  #   self.db['Date']=pd.to_datetime(self.db['Date'],format='%Y-%m-%d')
+  #   self.db.set_index('Date',inplace=True)
+  #   self.db=self.db.asfreq('D')
+  #   self.db['DayOfWeek'] = self.db.index.dayofweek + 1
+  #   self.db['DayOfMonth'] = self.db.index.day
+  #   self.db['WeekOfMonth'] = self.db.index.map(get_week_of_month)
+  #   self.train = self.db.iloc[-31-30*self.train_months:-31]
+  #   self.test = self.db.iloc[-31:]
+  #   self.features = [i for i in self.train.columns if i not in self.target]
 
   def best_params_ARIMA(self,p,d,q,progress_bar):
     pdq = list(itertools.product(p, d, q))
@@ -84,15 +142,15 @@ class Models:
 
   def train_ARIMA(self,params):
     prediction = []
-    data = self.train['Price']
+    data = self.train[self.target]
     for i in range(len(self.test)):
       model = ARIMA(data,order=params)
       model_fit = model.fit()
       pred = model_fit.predict(start=len(self.train)+i, end=len(self.train)+i, dynamic=False)
       prediction.append(pred[0])
       data = np.append(data,pred[0])
-    mse = mean_squared_error(self.test['Price'], prediction)
-    mape = mean_absolute_percentage_error(self.test['Price'], prediction)
+    mse = mean_squared_error(self.test[self.target], prediction)
+    mape = mean_absolute_percentage_error(self.test[self.target], prediction)
     print(f"ARIMA:\nMSE: {mse}\nMAPE: {mape}")
     return prediction, mse, mape
 
@@ -103,7 +161,7 @@ class Models:
     tscv = TimeSeriesSplit(n_splits=self.train_months)
     for param in params:
       model = RandomForestRegressor(n_estimators=param[0], max_depth=param[1])
-      cv_score = cross_val_score(model,self.train[self.features],self.train['Price'],cv=tscv,scoring='neg_mean_squared_error')
+      cv_score = cross_val_score(model,self.train[self.features],self.train[self.target],cv=tscv,scoring='neg_mean_squared_error')
       mse= -cv_score.mean()
       #print(f"RFR(n_est={param[0]}, max_depth={param[1]}) CV score: {cv_score}\t MSE: {mse}")
       if mse < best_mse:
@@ -121,10 +179,10 @@ class Models:
     scaled_features_final = norm.transform(self.train[self.features])
     scaled_features_test = norm.transform(self.test[self.features])
     model = RandomForestRegressor(n_estimators=params[0], max_depth=params[1])
-    model.fit(scaled_features_final, self.train['Price'])
+    model.fit(scaled_features_final, self.train[self.target])
     predicted_prices = model.predict(scaled_features_test)
-    mse = mean_squared_error(self.test['Price'], predicted_prices)
-    mape = mean_absolute_percentage_error(self.test['Price'], predicted_prices)
+    mse = mean_squared_error(self.test[self.target], predicted_prices)
+    mape = mean_absolute_percentage_error(self.test[self.target], predicted_prices)
     print(f"RFR:\nMSE: {mse}\nMAPE: {mape}")
     return predicted_prices,mse,mape
 
@@ -142,9 +200,9 @@ class Models:
     for param in params:
       model_linear = SVR(kernel='linear', C=param[0], epsilon=param[1])
       model_rbf = SVR(kernel='rbf', C=param[0], epsilon=param[1])
-      cv_score_linear = cross_val_score(model_linear,scaled_features_train,self.train['Price'],cv=tscv,scoring='neg_mean_squared_error')
+      cv_score_linear = cross_val_score(model_linear,scaled_features_train,self.train[self.target],cv=tscv,scoring='neg_mean_squared_error')
       mse_linear = -cv_score_linear.mean()
-      cv_score_rbf = cross_val_score(model_rbf,scaled_features_train,self.train['Price'],cv=tscv,scoring='neg_mean_squared_error')
+      cv_score_rbf = cross_val_score(model_rbf,scaled_features_train,self.train[self.target],cv=tscv,scoring='neg_mean_squared_error')
       mse_rbf = -cv_score_rbf.mean()
       #print(f"SVR (kernel=linear, C={param[0]}, epsilon={param[1]}) with CV_score: {cv_score_linear}\tmse: {mse_linear}")
       #print(f"SVR (kernel=rbf, C={param[0]}, epsilon={param[1]}) with CV_score: {cv_score_rbf}\tmse: {mse_rbf}")
@@ -156,7 +214,7 @@ class Models:
         best_params_linear = param
       for param2 in q:
         model_poly = SVR(kernel='poly', C=param[0], epsilon=param[1], degree=param2)
-        cv_score_poly = cross_val_score(model_poly,scaled_features_train,self.train['Price'],cv=tscv,scoring='neg_mean_squared_error')
+        cv_score_poly = cross_val_score(model_poly,scaled_features_train,self.train[self.target],cv=tscv,scoring='neg_mean_squared_error')
         mse_poly = -cv_score_poly.mean()
         #print(f"SVR (kernel=poly, C={param[0]}, epsilon={param[1]}, degree={param2}) with CV_score: {cv_score_poly}\tmse: {mse_poly}")
         if mse_poly < best_mse_poly:
@@ -179,21 +237,21 @@ class Models:
     scaled_features_train = norm.transform(self.train[self.features])
     scaled_features_test = norm.transform(self.test[self.features])
     model_linear = SVR(kernel='linear', C=params[0][0], epsilon=params[0][1])
-    model_linear.fit(scaled_features_train,self.train['Price'])
+    model_linear.fit(scaled_features_train,self.train[self.target])
     model_poly = SVR(kernel='poly', C=params[1][0], epsilon=params[1][1], degree=params[1][2])
-    model_poly.fit(scaled_features_train,self.train['Price'])
+    model_poly.fit(scaled_features_train,self.train[self.target])
     model_rbf = SVR(kernel='rbf', C=params[2][0], epsilon=params[2][1])
-    model_rbf.fit(scaled_features_train,self.train['Price'])
+    model_rbf.fit(scaled_features_train,self.train[self.target])
     predicted_prices_linear = model_linear.predict(scaled_features_test)
     predicted_prices_poly = model_poly.predict(scaled_features_test)
     predicted_prices_rbf = model_rbf.predict(scaled_features_test)
     prediction = [predicted_prices_linear, predicted_prices_poly, predicted_prices_rbf]
-    mse.append(mean_squared_error(self.test['Price'], predicted_prices_linear))
-    mse.append(mean_squared_error(self.test['Price'], predicted_prices_poly))
-    mse.append(mean_squared_error(self.test['Price'], predicted_prices_rbf))
-    mape.append(mean_absolute_percentage_error(self.test['Price'], predicted_prices_linear))
-    mape.append(mean_absolute_percentage_error(self.test['Price'], predicted_prices_poly))
-    mape.append(mean_absolute_percentage_error(self.test['Price'], predicted_prices_rbf))
+    mse.append(mean_squared_error(self.test[self.target], predicted_prices_linear))
+    mse.append(mean_squared_error(self.test[self.target], predicted_prices_poly))
+    mse.append(mean_squared_error(self.test[self.target], predicted_prices_rbf))
+    mape.append(mean_absolute_percentage_error(self.test[self.target], predicted_prices_linear))
+    mape.append(mean_absolute_percentage_error(self.test[self.target], predicted_prices_poly))
+    mape.append(mean_absolute_percentage_error(self.test[self.target], predicted_prices_rbf))
     for info in zip(mse,mape,kernels):
       print(f"SVR with {info[2]} kernel:\nMSE: {info[0]}\nMAPE: {info[1]}")
     return prediction, mse, mape

@@ -8,6 +8,8 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from models_class import Models
 
+TRAIN_MONTHS = 2
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -82,15 +84,15 @@ class MainWindow(QMainWindow):
         self.figure.clear()
         match(self.Data_choose.currentIndex()):
             case 0:
-                self.data_type = "EUR"
+                self.data_type = "1EUR"
             case 1:
-                self.data_type = "USD"
+                self.data_type = "1USD"
             case 2:
-                self.data_type = "CAD"
+                self.data_type = "1CAD"
             case 3:
-                self.data_type = "KRW"
+                self.data_type = "100KRW"
             case 4:
-                self.data_type = "CLP"
+                self.data_type = "100CLP"
         if self.Params_choose.currentIndex() == 0:
             params = "Best"
             with open("best_params.json",'r') as file:
@@ -104,9 +106,9 @@ class MainWindow(QMainWindow):
             params_arima = [0, 0, 0]
             params_svr = [[1, 0.1], [1, 0.1, 3], [1, 0.1]]
         print(f"Predict button clicked with {self.data_type} data and {params} params")
-        df = pd.read_csv('bitcoin_prices(USD).csv')
-        models = Models(df,self.data_type,8)
-        models.prepare_data_test()
+        df = pd.read_csv('currency_data.csv', encoding='latin-1', sep=';')
+        models = Models(df,self.data_type,TRAIN_MONTHS)
+        models.prepare_data()
         self.train = models.train
         self.test = models.test
         self.target = models.target
@@ -157,9 +159,9 @@ class MainWindow(QMainWindow):
         self.result_table.item(4, 2).setText(str(SVR_mape[2]) + "%")
 
     def find_best_params(self):
-        df = pd.read_csv('bitcoin_prices(USD).csv')
-        models = Models(df,self.data_type,8)
-        models.prepare_data_test()
+        df = pd.read_csv('currency_data.csv', encoding='latin-1', sep=';')
+        models = Models(df,self.data_type,TRAIN_MONTHS)
+        models.prepare_data()
         n = [10,25,50,100,200,300,500]
         depth = [2,5,15,25,50,100,None]
         p = [0,1,2,3,4]
