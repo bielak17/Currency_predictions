@@ -16,7 +16,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,0">
+     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,0,0">
       <property name="spacing">
        <number>10</number>
       </property>
@@ -64,51 +64,146 @@
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="Data_choose">
-        <property name="minimumSize">
-         <size>
-          <width>175</width>
-          <height>50</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="font">
-         <font>
-          <family>Arial</family>
-          <pointsize>16</pointsize>
-         </font>
-        </property>
+       <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
-         <property name="text">
-          <string>1 EUR -&gt; PLN</string>
-         </property>
+         <widget class="QLabel" name="Data_label">
+          <property name="font">
+           <font>
+            <family>Arial</family>
+            <pointsize>16</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>Currency type</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
         </item>
         <item>
-         <property name="text">
-          <string>1 USD -&gt; PLN</string>
-         </property>
+         <widget class="QComboBox" name="Data_choose">
+          <property name="minimumSize">
+           <size>
+            <width>175</width>
+            <height>50</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <family>Arial</family>
+            <pointsize>16</pointsize>
+           </font>
+          </property>
+          <item>
+           <property name="text">
+            <string>1 EUR -&gt; PLN</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>1 USD -&gt; PLN</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>1 CAD -&gt; PLN</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>100 KRW -&gt; PLN</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>100 CLP -&gt; PLN</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayout_4">
+        <item>
+         <widget class="QLabel" name="Month_label">
+          <property name="font">
+           <font>
+            <family>Arial</family>
+            <pointsize>16</pointsize>
+            <kerning>false</kerning>
+           </font>
+          </property>
+          <property name="text">
+           <string>Number of months
+in training</string>
+          </property>
+          <property name="scaledContents">
+           <bool>false</bool>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
         </item>
         <item>
-         <property name="text">
-          <string>1 CAD -&gt; PLN</string>
-         </property>
+         <widget class="QComboBox" name="Month_choose">
+          <property name="minimumSize">
+           <size>
+            <width>50</width>
+            <height>50</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <family>Arial</family>
+            <pointsize>16</pointsize>
+           </font>
+          </property>
+          <property name="sizeAdjustPolicy">
+           <enum>QComboBox::AdjustToContentsOnFirstShow</enum>
+          </property>
+          <item>
+           <property name="text">
+            <string>2</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>4</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>6</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>8</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>10</string>
+           </property>
+          </item>
+         </widget>
         </item>
-        <item>
-         <property name="text">
-          <string>100 KRW -&gt; PLN</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>100 CLP -&gt; PLN</string>
-         </property>
-        </item>
-       </widget>
+       </layout>
       </item>
       <item>
        <widget class="QComboBox" name="Params_choose">

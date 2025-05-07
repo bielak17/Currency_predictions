@@ -7,16 +7,17 @@ from PyQt5.QtGui import QFont
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from models_class import Models
-
-TRAIN_MONTHS = 2
+from best_params_class import Best_params_handler
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.data_type = None
+        self.train_months = 6
         self.train = None
         self.test = None
         self.target = None
+        self.params_handler = Best_params_handler("best_params.json")
         self.arima_pred = None
         self.rfr_pred = None
         self.svrlin_pred = None
@@ -82,6 +83,7 @@ class MainWindow(QMainWindow):
         self.result_table.show()
         self.graph.show()
         self.figure.clear()
+        self.train_months = (self.Month_choose.currentIndex() + 1)*2
         match(self.Data_choose.currentIndex()):
             case 0:
                 self.data_type = "1EUR"
@@ -94,20 +96,30 @@ class MainWindow(QMainWindow):
             case 4:
                 self.data_type = "100CLP"
         if self.Params_choose.currentIndex() == 0:
-            params = "Best"
-            with open("best_params.json",'r') as file:
-                best_params = json.load(file)
+            best_params = self.params_handler.get_params(self.train_months,self.data_type)
+            if best_params is None:
+                print("\033[91mNO BEST PARAMS SAVED FOR THIS CONFIGURATION OF CURRENCY AND NUMBER OF MONTHS. CHOOSING DEFAULT PARAMETERS INSTEAD!!!\033[0m")
+                params_rfr = None
+                params_arima = None
+                params_svr = None
+            else:
                 params_rfr = best_params['rfr']
                 params_arima = best_params['arima']
                 params_svr = best_params['svr']
         else:
-            params = "Default"
+            params_rfr = None
+            params_arima = None
+            params_svr = None
+        if not params_rfr:
             params_rfr = [100, None]
+        if not params_arima:
             params_arima = [0, 0, 0]
+        if not params_svr:
             params_svr = [[1, 0.1], [1, 0.1, 3], [1, 0.1]]
-        print(f"Predict button clicked with {self.data_type} data and {params} params")
+        #print(f"Predict button clicked with {self.data_type} data")
+        #print(f"Train_months chosen: {self.train_months}")
         df = pd.read_csv('currency_data.csv', encoding='latin-1', sep=';')
-        models = Models(df,self.data_type,TRAIN_MONTHS)
+        models = Models(df,self.data_type,self.train_months)
         models.prepare_data()
         self.train = models.train
         self.test = models.test
@@ -160,15 +172,27 @@ class MainWindow(QMainWindow):
 
     def find_best_params(self):
         df = pd.read_csv('currency_data.csv', encoding='latin-1', sep=';')
-        models = Models(df,self.data_type,TRAIN_MONTHS)
+        self.train_months = (self.Month_choose.currentIndex() + 1)*2
+        match (self.Data_choose.currentIndex()):
+            case 0:
+                self.data_type = "1EUR"
+            case 1:
+                self.data_type = "1USD"
+            case 2:
+                self.data_type = "1CAD"
+            case 3:
+                self.data_type = "100KRW"
+            case 4:
+                self.data_type = "100CLP"
+        models = Models(df,self.data_type,self.train_months)
         models.prepare_data()
         n = [10,25,50,100,200,300,500]
         depth = [2,5,15,25,50,100,None]
         p = [0,1,2,3,4]
         d = [0,1,2]
         q = [0,1,2,3,4]
-        c = [10,100,1000,10000]
-        epsilon = [1,10,100,1000]
+        c = [0.01,0.1,1,10,100,1000]
+        epsilon = [0.01,0.1,1,10,100]
         degree = [2,3,4]
         self.best_params_progress.show()
         total_steps = len(n)*len(depth) + len(p)*len(d)*len(q) + len(c)*len(epsilon)
@@ -182,8 +206,7 @@ class MainWindow(QMainWindow):
             'arima':params_arima,
             'svr':params_svr
         }
-        with open('best_params.json','w') as file:
-            json.dump(params,file)
+        self.params_handler.set_params(self.train_months,self.data_type,params)
         self.best_params_progress.hide()
 
 if __name__ == '__main__':
