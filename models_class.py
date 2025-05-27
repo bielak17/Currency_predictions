@@ -119,12 +119,12 @@ class Models:
     params=list(itertools.product(n,d))
     best_mse = float('inf')
     best_params = []
-    norm = self.scaler.fit(self.train[self.features])                                     #Scaling features
-    scaled_features_train = norm.transform(self.train[self.features])
+    #norm = self.scaler.fit(self.train[self.features])                                     #Scaling features
+    #scaled_features_train = norm.transform(self.train[self.features])
     tscv = TimeSeriesSplit(n_splits=self.train_months)                                    #time series cross validation
     for param in params:
       model = RandomForestRegressor(n_estimators=param[0], max_depth=param[1])
-      cv_score = cross_val_score(model, scaled_features_train,self.train[self.target].values.ravel(),cv=tscv,scoring='neg_mean_squared_error')  #Predicting and caluclating errors using -mse
+      cv_score = cross_val_score(model, self.train[self.features],self.train[self.target].values.ravel(),cv=tscv,scoring='neg_mean_squared_error')  #Predicting and caluclating errors using -mse
       mse= -cv_score.mean()
       #print(f"RFR(n_est={param[0]}, max_depth={param[1]}) CV score: {cv_score}\t MSE: {mse}")
       if mse < best_mse:
@@ -138,12 +138,12 @@ class Models:
     return best_params
 
   def train_RFR(self, params):                                                        #Prediction with RFR using params parameters
-    norm = self.scaler.fit(self.train[self.features])
-    scaled_features_train = norm.transform(self.train[self.features])
-    scaled_features_test = norm.transform(self.test[self.features])                    #Scaling features
+    #norm = self.scaler.fit(self.train[self.features])
+    #scaled_features_train = norm.transform(self.train[self.features])
+    #scaled_features_test = norm.transform(self.test[self.features])                    #Scaling features
     model = RandomForestRegressor(n_estimators=params[0], max_depth=params[1])
-    model.fit(scaled_features_train, self.train[self.target].values.ravel())            #training
-    predicted_prices = model.predict(scaled_features_test)                              #prediction
+    model.fit(self.train[self.features], self.train[self.target].values.ravel())            #training
+    predicted_prices = model.predict(self.test[self.features])                              #prediction
     mse = mean_squared_error(self.test[self.target], predicted_prices)
     mape = mean_absolute_percentage_error(self.test[self.target], predicted_prices)     #calculating errors
     print(f"RFR:\nMSE: {mse}\nMAPE: {mape}")
@@ -158,14 +158,14 @@ class Models:
     best_params_rbf = []
     params = list(itertools.product(c, epsilon))
     tscv = TimeSeriesSplit(n_splits=self.train_months)                                #time series cross validation
-    norm = self.scaler.fit(self.train[self.features])
-    scaled_features_train = norm.transform(self.train[self.features])                 #scaling features
+    #norm = self.scaler.fit(self.train[self.features])
+    #scaled_features_train = norm.transform(self.train[self.features])                 #scaling features
     for param in params:
       model_linear = SVR(kernel='linear', C=param[0], epsilon=param[1])
       model_rbf = SVR(kernel='rbf', C=param[0], epsilon=param[1])                     #Calculating mse using cross validation score for rbf and linear kernels
-      cv_score_linear = cross_val_score(model_linear,scaled_features_train,self.train[self.target].values.ravel(),cv=tscv,scoring='neg_mean_squared_error')
+      cv_score_linear = cross_val_score(model_linear,self.train[self.features],self.train[self.target].values.ravel(),cv=tscv,scoring='neg_mean_squared_error')
       mse_linear = -cv_score_linear.mean()
-      cv_score_rbf = cross_val_score(model_rbf,scaled_features_train,self.train[self.target].values.ravel(),cv=tscv,scoring='neg_mean_squared_error')
+      cv_score_rbf = cross_val_score(model_rbf,self.train[self.features],self.train[self.target].values.ravel(),cv=tscv,scoring='neg_mean_squared_error')
       mse_rbf = -cv_score_rbf.mean()
       #print(f"SVR (kernel=linear, C={param[0]}, epsilon={param[1]}) with CV_score: {cv_score_linear}\tmse: {mse_linear}")
       #print(f"SVR (kernel=rbf, C={param[0]}, epsilon={param[1]}) with CV_score: {cv_score_rbf}\tmse: {mse_rbf}")
@@ -177,7 +177,7 @@ class Models:
         best_params_linear = param
       for param2 in q:
         model_poly = SVR(kernel='poly', C=param[0], epsilon=param[1], degree=param2)    #Caluclating mse using cv score for different degree for polynomial kernel
-        cv_score_poly = cross_val_score(model_poly,scaled_features_train,self.train[self.target].values.ravel(),cv=tscv,scoring='neg_mean_squared_error')
+        cv_score_poly = cross_val_score(model_poly,self.train[self.features],self.train[self.target].values.ravel(),cv=tscv,scoring='neg_mean_squared_error')
         mse_poly = -cv_score_poly.mean()
         #print(f"SVR (kernel=poly, C={param[0]}, epsilon={param[1]}, degree={param2}) with CV_score: {cv_score_poly}\tmse: {mse_poly}")
         if mse_poly < best_mse_poly:
@@ -196,18 +196,18 @@ class Models:
     mse = []
     mape = []
     kernels = ['linear','poly','rbf']
-    norm = self.scaler.fit(self.train[self.features])
-    scaled_features_train = norm.transform(self.train[self.features])
-    scaled_features_test = norm.transform(self.test[self.features])           #Scaling features for train and test datasets
+    #norm = self.scaler.fit(self.train[self.features])
+    #scaled_features_train = norm.transform(self.train[self.features])
+    #scaled_features_test = norm.transform(self.test[self.features])           #Scaling features for train and test datasets
     model_linear = SVR(kernel='linear', C=params[0][0], epsilon=params[0][1])
-    model_linear.fit(scaled_features_train,self.train[self.target].values.ravel())
+    model_linear.fit(self.train[self.features],self.train[self.target].values.ravel())
     model_poly = SVR(kernel='poly', C=params[1][0], epsilon=params[1][1], degree=params[1][2])
-    model_poly.fit(scaled_features_train,self.train[self.target].values.ravel())
+    model_poly.fit(self.train[self.features],self.train[self.target].values.ravel())
     model_rbf = SVR(kernel='rbf', C=params[2][0], epsilon=params[2][1])       #Creating and training all 3 models
-    model_rbf.fit(scaled_features_train,self.train[self.target].values.ravel())
-    predicted_prices_linear = model_linear.predict(scaled_features_test)
-    predicted_prices_poly = model_poly.predict(scaled_features_test)
-    predicted_prices_rbf = model_rbf.predict(scaled_features_test)            #Prediction iwth all 3 models
+    model_rbf.fit(self.train[self.features],self.train[self.target].values.ravel())
+    predicted_prices_linear = model_linear.predict(self.test[self.features])
+    predicted_prices_poly = model_poly.predict(self.test[self.features])
+    predicted_prices_rbf = model_rbf.predict(self.test[self.features])            #Prediction with all 3 models
     prediction = [predicted_prices_linear, predicted_prices_poly, predicted_prices_rbf]
     mse.append(mean_squared_error(self.test[self.target], predicted_prices_linear))
     mse.append(mean_squared_error(self.test[self.target], predicted_prices_poly))
