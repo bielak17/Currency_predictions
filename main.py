@@ -56,28 +56,33 @@ class MainWindow(QMainWindow):
         plt.ylabel('Exchange rate')             #Plotting the graph
         match row:                              #Adding prediction and changing name based on model used
             case 0:
-                path += "_prediction_using_ARIMA.png"
+                path += "_prediction_using_ARIMA_with_"
+                path += (str(self.train_months) + "_months.png")
                 plt.plot(self.test.index, self.arima_pred, label='Predicted values', color='red')
-                plt.title(self.data_type + "_prediction_using_ARIMA")
+                plt.title(self.data_type + "_prediction_using_ARIMA_with_" + str(self.train_months) +"_months")
             case 1:
-                path += "_prediction_using_RFR.png"
+                path += "_prediction_using_RFR_with_"
+                path += (str(self.train_months) + "_months.png")
                 plt.plot(self.test.index, self.rfr_pred, label = 'Predicted values', color = 'red')
-                plt.title(self.data_type + "_prediction_using_RFR")
+                plt.title(self.data_type + "_prediction_using_RFR_with_" + str(self.train_months) +"_months")
             case 2:
-                path += "_prediction_using_SVR_linear.png"
+                path += "_prediction_using_SVR_linear_with_"
+                path += (str(self.train_months) + "_months.png")
                 plt.plot(self.test.index, self.svrlin_pred, label='Predicted values', color='red')
-                plt.title(self.data_type + "_prediction_using_Linear_SVR")
+                plt.title(self.data_type + "_prediction_using_Linear_SVR_with_" + str(self.train_months) +"_months")
             case 3:
-                path += "_prediction_using_SVR_polynomial.png"
+                path += "_prediction_using_SVR_polynomial_with_"
+                path += (str(self.train_months) + "_months.png")
                 plt.plot(self.test.index, self.svrpoly_pred, label='Predicted values', color='red')
-                plt.title(self.data_type + "_prediction_using_Polynomial_SVR")
+                plt.title(self.data_type + "_prediction_using_Polynomial_SVR_with_" + str(self.train_months) +"_months")
             case 4:
-                path += "_prediction_using_SVR_RBF.png"
+                path += "_prediction_using_SVR_RBF_with_"
+                path += (str(self.train_months) + "_months.png")
                 plt.plot(self.test.index, self.svrrbf_pred, label='Predicted values', color='red')
-                plt.title(self.data_type + "_prediction_using_RBF_SVR")
+                plt.title(self.data_type + "_prediction_using_RBF_SVR_with_" + str(self.train_months) +"_months")
         plt.legend()
         plt.savefig(path, dpi=200)
-        #print(f"Successfully saved as {path}")
+        print(f"Successfully saved as {path}")
 
     def predict(self):                                      #Prediction function
         self.result_table.show()
